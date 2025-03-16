@@ -3,13 +3,20 @@ import { loadHomepage } from '$lib/effects/router/load.js';
 import { routeFunctionLayer } from '$lib/effects/router/index.js';
 import { redisLayer } from '$lib/effects/redis.js';
 import { actionHomeCreate } from '$lib/effects/router/actions';
+import { testRunSchema } from '$lib/effects/schema';
 
 export const load = async (event) => {
 	// const layer = routeFunctionLayer(event);
 
-	const layer = Layer.mergeAll(routeFunctionLayer(event), redisLayer);
+	const result = await Effect.runPromise(testRunSchema);
 
-	return Effect.runPromise(loadHomepage.pipe(Effect.provide(layer)));
+	console.log(result);
+
+	return result;
+
+	// const layer = Layer.mergeAll(routeFunctionLayer(event), redisLayer);
+
+	// return Effect.runPromise(loadHomepage.pipe(Effect.provide(layer)));
 };
 
 export const actions = {
