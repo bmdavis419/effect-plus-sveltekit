@@ -9,26 +9,43 @@ type MiniQueryOpts<TInput> = {
 
 type MiniQuery<TDef extends MiniQueryDef> = {
 	_def: {
-		$types: {
-			input: TDef['input'];
-			output: TDef['output'];
-		};
+		$types: TDef;
 	};
-	(opts: MiniQueryOpts<TDef['input']>): TDef['output'];
+	resolver(opts: MiniQueryOpts<TDef['input']>): TDef['output'];
 };
 
 type AnyMiniQuery = MiniQuery<any>;
 
-type MiniRouterRecord = {
+type MiniQueryRecord = {
 	[key: string]: AnyMiniQuery;
 };
 
-type DecoratedMiniQuery<TDef extends MiniQueryDef> = {};
-
-type DecoratedMiniRouterRecord<TRecord extends MiniRouterRecord> = {
-	[TKey in keyof TRecord]: TRecord[TKey] extends infer $Value
-		? $Value extends AnyMiniQuery
-			? MiniQuery<$Value['_def']['$types']>
-			: never
-		: never;
+type DecoratedMiniQueryRecord<TRecord extends MiniQueryRecord> = {
+	[TKey in keyof TRecord]: TRecord[TKey] extends MiniQuery<infer TDef> ? MiniQuery<TDef> : never;
 };
+
+interface HelloQueryDef extends MiniQueryDef {
+	input: {
+		name: string;
+		age: number;
+	};
+	output: {
+		message: string;
+	};
+}
+
+const testMiniQuery: MiniQuery<HelloQueryDef> = {
+	_def: {} as any,
+	resolver: (opts) => {
+		return {
+			message: `Hello ${opts.input.name}, you are ${opts.input.age} years old`
+		};
+	}
+};
+
+const testMiniRouter = {
+	hello: testMiniQuery,
+	goodbye: testMiniQuery
+} as const;
+
+export const myMiniRouter = testMiniRouter as DecoratedMiniQueryRecord<typeof testMiniRouter>;

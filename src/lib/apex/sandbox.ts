@@ -105,6 +105,8 @@ const testSchema = Schema.Struct({
 	age: Schema.Number
 });
 
+const interesting = Schema.decodeUnknownSync(testSchema);
+
 type InputType = Schema.Schema.Type<typeof testSchema>;
 
 const parseFnTest = async (input: string) => {
@@ -262,3 +264,5 @@ const builder = createApexQueryBuilder({});
 const query = builder.input(Schema.parseJson(testSchema));
 
 // TODO: keep working on getting the query builder to work. Start by testing console logging the current states of the builder
+
+const router = createApexRouter({});
