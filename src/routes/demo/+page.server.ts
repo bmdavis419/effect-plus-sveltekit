@@ -1,25 +1,33 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { Effect, Schema } from 'effect';
 
+type ApexQuery<I, O> = {
+	query: (data: { input: I }) => O;
+	id: string;
+	schema: Schema.SchemaClass<I, string, never>;
+	_types: {
+		input: I;
+		output: O;
+	};
+};
+
 const createApexQuery = () => {
-	const input = <T>(schema: Schema.SchemaClass<T, string, never>) => {
+	const input = <I>(schema: Schema.SchemaClass<I, string, never>) => {
 		type InputType = Schema.Schema.Type<typeof schema>;
 
-		const query = <O>(fn: (data: { input: InputType }) => O) => {
+		const query = <O>(fn: (data: { input: InputType }) => O): ApexQuery<InputType, O> => {
 			type OutputType = O;
 
-			// Return the function with type information attached
-			const typedFn = fn as typeof fn & {
-				_types: {
-					input: InputType;
-					output: OutputType;
-				};
+			const id = crypto.randomUUID();
+
+			const route: ApexQuery<InputType, OutputType> = {
+				id,
+				schema,
+				query: fn,
+				_types: {} as any
 			};
 
-			// Attach type information
-			typedFn._types = {} as any;
-
-			return typedFn;
+			return route;
 		};
 
 		return {
@@ -49,7 +57,7 @@ export const load = () => {
 	type DemoInputType = typeof demoTesting._types.input;
 	type DemoOutputType = typeof demoTesting._types.output;
 
-	const result = demoTesting({
+	const result = demoTesting.query({
 		input: {
 			name: 'asdf',
 			age: 1313
