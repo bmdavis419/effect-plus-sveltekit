@@ -107,7 +107,18 @@ const createResolver = (data: {
 		resolver: QueryBuilderResolver;
 	}): AnyMiniQuery => {
 		async function query(opts: MiniQueryOpts<unknown>) {
-			const result = await data.resolver(opts);
+			let input = opts.input;
+			if (finalBuilder._def.input) {
+				const parseFn = getParseFn(finalBuilder._def.input);
+				input = parseFn(input);
+			}
+
+			let result = await data.resolver({ input });
+
+			if (finalBuilder._def.output) {
+				const parseFn = getParseFn(finalBuilder._def.output);
+				result = parseFn(result);
+			}
 
 			return result;
 		}

@@ -1,6 +1,8 @@
 <script>
 	const { data } = $props();
 
+	let testing = $state(12);
+
 	$inspect(data);
 </script>
 
