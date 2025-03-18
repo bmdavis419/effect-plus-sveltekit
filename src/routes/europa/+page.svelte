@@ -1,23 +1,34 @@
 <script>
 	import { getEuropaClient } from './europaClient.svelte.js';
-	import { createEuropaQuery } from './europaQuery.js';
-
-	const { data } = $props();
-
-	$inspect(data);
 
 	const client = getEuropaClient();
 
-	// THIS DOES NOT WORK IF DESTRUCTURED
-	let weirdObjMan = client.testWeirdStateStuff();
+	const myFirstQuery = client.createQuery({
+		queryFn: async () => {
+			console.log('big boy got run');
+			const randomNumber = Math.random();
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
-	$inspect(weirdObjMan.value);
+			if (randomNumber > 0.5) {
+				throw new Error('random number is too big');
+			}
+
+			return randomNumber;
+		},
+		queryKey: ['lul']
+	});
 </script>
 
 <div>we making shitty react query at home</div>
 
-<div>
-	{weirdObjMan.value}
-</div>
+{#if myFirstQuery.isLoading}
+	<div>loading...</div>
+{:else if myFirstQuery.error}
+	<div>error: {myFirstQuery.error.message}</div>
+{:else if myFirstQuery.data}
+	<div>your random number is {myFirstQuery.data}</div>
+{/if}
 
-<button onclick={() => (weirdObjMan.value = weirdObjMan.value + 1)}> click me </button>
+<!-- <button onclick={() => myFirstQuery.refetch()}>refetch test</button> -->
+
+<button onclick={() => myFirstQuery.refetch()}>invalidate</button>
