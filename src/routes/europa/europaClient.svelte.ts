@@ -6,6 +6,12 @@ import {
 	type EuropaQueryDef,
 	type EuropaQueryOptions
 } from './europaQuery';
+import {
+	defaultEuropaMutationOptions,
+	type EuropaMutation,
+	type EuropaMutationDef,
+	type EuropaMutationOptions
+} from './europaMutation';
 
 class EuropaClient {
 	private queries: AnyEuropaQuery[] = [];
@@ -61,13 +67,69 @@ class EuropaClient {
 		await this.rerunQueries(queries);
 	}
 
-	createQuery<TOutput>(queryData: {
-		queryFn: () => Promise<TOutput>;
+	createMutation<$Input, $Output>(mutationData: {
+		mutationFn: (input: $Input) => Promise<$Output>;
+		options?: Partial<EuropaMutationOptions<$Output>>;
+	}): EuropaMutation<$Input, $Output> {
+		const _def: EuropaMutationDef<$Input, $Output> = {
+			$types: {
+				input: null as unknown as $Input,
+				output: null as unknown as $Output
+			},
+			resolver: mutationData.mutationFn,
+			options: {
+				...defaultEuropaMutationOptions,
+				...mutationData.options
+			}
+		};
+
+		let data = $state<$Output | undefined>();
+		let isLoading = $state(false);
+		let error = $state<Error | undefined>();
+
+		const mutate = async (input: $Input) => {
+			try {
+				isLoading = true;
+				error = undefined;
+				data = await _def.resolver(input);
+				if (_def.options.onSuccess) {
+					await _def.options.onSuccess(data);
+				}
+			} catch (e) {
+				error = e as Error;
+				console.error('Mutation failed:', error);
+				if (_def.options.onError) {
+					await _def.options.onError(error);
+				}
+			} finally {
+				isLoading = false;
+			}
+		};
+
+		const newMutation: EuropaMutation<$Input, $Output> = {
+			_def,
+			mutate,
+			get error() {
+				return error;
+			},
+			get data() {
+				return data;
+			},
+			get isLoading() {
+				return isLoading;
+			}
+		};
+
+		return newMutation;
+	}
+
+	createQuery<$Output>(queryData: {
+		queryFn: () => Promise<$Output>;
 		queryKey: string[];
 		options?: Partial<EuropaQueryOptions>;
-	}): EuropaQuery<TOutput> {
-		const _def: EuropaQueryDef<TOutput> = {
-			$types: { output: null as unknown as TOutput },
+	}): EuropaQuery<$Output> {
+		const _def: EuropaQueryDef<$Output> = {
+			$types: { output: null as unknown as $Output },
 			key: queryData.queryKey,
 			resolver: queryData.queryFn,
 			options: {
@@ -76,7 +138,7 @@ class EuropaClient {
 			}
 		};
 
-		let data = $state<TOutput | undefined>();
+		let data = $state<$Output | undefined>();
 		let isLoading = $state(false);
 		let error = $state<Error | undefined>();
 
@@ -112,7 +174,7 @@ class EuropaClient {
 			}
 		};
 
-		const newQuery: EuropaQuery<TOutput> = {
+		const newQuery: EuropaQuery<$Output> = {
 			_def,
 			refetch,
 			get error() {
