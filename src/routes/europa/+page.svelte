@@ -1,22 +1,11 @@
 <script lang="ts">
+	import { createFirstQuery } from './clientHelpers.js';
+	import QuerySub from './components/QuerySub.svelte';
 	import { getEuropaClient } from './europaClient.svelte.js';
 
 	const client = getEuropaClient();
 
-	const myFirstQuery = client.createQuery({
-		queryFn: async () => {
-			console.log('big boy got run');
-			const randomNumber = Math.random();
-			// await new Promise((resolve) => setTimeout(resolve, 100));
-
-			// if (randomNumber > 0.5) {
-			// 	throw new Error('random number is too big');
-			// }
-
-			return randomNumber;
-		},
-		queryKey: ['lul']
-	});
+	const myFirstQuery = createFirstQuery();
 
 	const myFirstMutation = client.createMutation({
 		mutationFn: async (input: { name: string }) => {
@@ -44,19 +33,32 @@
 
 <div>we making shitty react query at home</div>
 
-<h2 class="pt-8 pb-4 text-2xl font-bold">query testing</h2>
+<nav class="flex gap-4 py-4">
+	<a href="/europa/sub" class="rounded-md bg-blue-500 px-4 py-2 text-white">sub</a>
+</nav>
 
-{#if myFirstQuery.isLoading}
-	<div>loading...</div>
-{:else if myFirstQuery.error}
-	<div>error: {myFirstQuery.error.message}</div>
-{:else if myFirstQuery.data}
-	<div>your random number is {myFirstQuery.data}</div>
-{/if}
+<div class="flex flex-row items-center gap-4">
+	<div class="bg-blue-300">
+		<h2 class="pt-8 pb-4 text-2xl font-bold">query testing</h2>
 
-<button onclick={() => myFirstQuery.refetch()} class="rounded-md bg-blue-500 px-4 py-2 text-white">
-	{myFirstQuery.isLoading ? 'loading...' : 'invalidate'}
-</button>
+		{#if myFirstQuery.isLoading}
+			<div>loading...</div>
+		{:else if myFirstQuery.error}
+			<div>error: {myFirstQuery.error.message}</div>
+		{:else if myFirstQuery.data}
+			<div>your random number is {myFirstQuery.data}</div>
+		{/if}
+
+		<button
+			onclick={() => myFirstQuery.refetch()}
+			class="rounded-md bg-blue-500 px-4 py-2 text-white"
+		>
+			{myFirstQuery.isLoading ? 'loading...' : 'invalidate'}
+		</button>
+	</div>
+
+	<QuerySub />
+</div>
 
 <h2 class="pt-8 pb-4 text-2xl font-bold">mutation testing</h2>
 

@@ -12,9 +12,13 @@ import {
 	type EuropaMutationDef,
 	type EuropaMutationOptions
 } from './europaMutation';
+import { EuropaCache } from './europaCache';
+import { EuropaLock } from './europaLock';
 
 class EuropaClient {
 	private queries: AnyEuropaQuery[] = [];
+	private cache: EuropaCache = new EuropaCache();
+	private lock: EuropaLock = new EuropaLock();
 
 	constructor() {
 		$effect(() => {
@@ -144,6 +148,7 @@ class EuropaClient {
 
 		$effect(() => {
 			const run = async () => {
+				console.log('QUERY IS RUNNING');
 				try {
 					isLoading = true;
 					error = undefined;
@@ -154,10 +159,11 @@ class EuropaClient {
 				} finally {
 					isLoading = false;
 				}
+				console.log('QUERY IS DONE');
 			};
 
 			if (_def.options.refetchOnMount) {
-				run();
+				this.lock.lock(_def.key.toString(), run);
 			}
 		});
 
