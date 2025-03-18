@@ -1,5 +1,13 @@
 <script>
+	import { getEuropaClient } from './europa/europaClient.svelte';
+
 	export const { data } = $props();
+
+	const client = getEuropaClient();
+
+	$effect(() => {
+		console.log('le client', client);
+	});
 
 	$inspect(data);
 </script>
