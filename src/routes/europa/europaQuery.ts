@@ -17,11 +17,16 @@ export type InternalEuropaQueryRunFn<TOutput> = () => Promise<{
 
 export type AnyInternalEuropaQueryRunFn = InternalEuropaQueryRunFn<any>;
 
-export type EuropaQueryDef<TOutput> = {
+export type EuropaQueryKey<TKey extends ReadonlyArray<any>> = {
+	[K in keyof TKey]: TKey[K] extends TKey[number] ? TKey[K] : never;
+};
+
+export type EuropaQueryDef<TOutput, TKey extends ReadonlyArray<any>> = {
 	$types: {
 		output: TOutput;
+		key: EuropaQueryKey<TKey>;
 	};
-	key: string[];
+	key: TKey;
 	resolver: () => Promise<TOutput>;
 	options: EuropaQueryOptions;
 	internalRunFn: InternalEuropaQueryRunFn<TOutput>;
@@ -34,8 +39,8 @@ export type EuropaQueryMethods<TOutput> = {
 	error: Error | undefined;
 };
 
-export type EuropaQuery<TOutput> = {
-	_def: EuropaQueryDef<TOutput>;
+export type EuropaQuery<TOutput, TKey extends ReadonlyArray<string>> = {
+	_def: EuropaQueryDef<TOutput, TKey>;
 } & EuropaQueryMethods<TOutput>;
 
-export type AnyEuropaQuery = EuropaQuery<any>;
+export type AnyEuropaQuery = EuropaQuery<any, any>;

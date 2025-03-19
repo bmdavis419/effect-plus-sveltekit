@@ -4,6 +4,7 @@ import {
 	type AnyEuropaQuery,
 	type EuropaQuery,
 	type EuropaQueryDef,
+	type EuropaQueryKey,
 	type EuropaQueryOptions
 } from './europaQuery';
 import {
@@ -40,7 +41,7 @@ class EuropaClient {
 		}
 	}
 
-	private findQueriesByKey(key: string[]) {
+	private findQueriesByKey(key: ReadonlyArray<any>) {
 		return this.queries.filter((query) => {
 			const queryKey = query._def.key;
 			return key.every((k, i) => k === queryKey[i]);
@@ -124,11 +125,11 @@ class EuropaClient {
 		return newMutation;
 	}
 
-	createQuery<$Output>(queryData: {
+	createQuery<$Output, $Key extends ReadonlyArray<any>>(queryData: {
 		queryFn: () => Promise<$Output>;
-		queryKey: string[];
+		queryKey: $Key;
 		options?: Partial<EuropaQueryOptions>;
-	}): EuropaQuery<$Output> {
+	}): EuropaQuery<$Output, $Key> {
 		const innerRun = async (resolver: () => Promise<$Output>) => {
 			let innerError: Error | undefined;
 			let innerData: $Output | undefined;
@@ -145,8 +146,11 @@ class EuropaClient {
 			};
 		};
 
-		const _def: EuropaQueryDef<$Output> = {
-			$types: { output: null as unknown as $Output },
+		const _def: EuropaQueryDef<$Output, $Key> = {
+			$types: {
+				output: null as unknown as $Output,
+				key: null as unknown as EuropaQueryKey<$Key>
+			},
 			key: queryData.queryKey,
 			resolver: queryData.queryFn,
 			internalRunFn: () => innerRun(queryData.queryFn),
@@ -190,7 +194,7 @@ class EuropaClient {
 			isLoading = false;
 		};
 
-		const newQuery: EuropaQuery<$Output> = {
+		const newQuery: EuropaQuery<$Output, $Key> = {
 			_def,
 			refetch,
 			get error() {

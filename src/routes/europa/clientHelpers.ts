@@ -15,7 +15,7 @@ export const createFirstQuery = () => {
 
 			return randomNumber;
 		},
-		queryKey: ['lul'],
+		queryKey: [420, 'sus'] as const,
 		options: {
 			refetchOnNavigate: false
 		}
