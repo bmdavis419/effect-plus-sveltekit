@@ -1,12 +1,21 @@
 export type EuropaQueryOptions = {
 	refetchOnWindowFocus: boolean;
 	refetchOnMount: boolean;
+	refetchOnNavigate: boolean;
 };
 
 export const defaultEuropaQueryOptions: EuropaQueryOptions = {
 	refetchOnWindowFocus: true,
-	refetchOnMount: true
+	refetchOnMount: true,
+	refetchOnNavigate: true
 };
+
+export type InternalEuropaQueryRunFn<TOutput> = () => Promise<{
+	data: TOutput | undefined;
+	error: Error | undefined;
+}>;
+
+export type AnyInternalEuropaQueryRunFn = InternalEuropaQueryRunFn<any>;
 
 export type EuropaQueryDef<TOutput> = {
 	$types: {
@@ -15,6 +24,7 @@ export type EuropaQueryDef<TOutput> = {
 	key: string[];
 	resolver: () => Promise<TOutput>;
 	options: EuropaQueryOptions;
+	internalRunFn: InternalEuropaQueryRunFn<TOutput>;
 };
 
 export type EuropaQueryMethods<TOutput> = {

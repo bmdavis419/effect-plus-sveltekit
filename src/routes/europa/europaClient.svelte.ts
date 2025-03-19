@@ -13,12 +13,10 @@ import {
 	type EuropaMutationOptions
 } from './europaMutation';
 import { EuropaCache } from './europaCache';
-import { EuropaLock } from './europaLock';
 
 class EuropaClient {
 	private queries: AnyEuropaQuery[] = [];
 	private cache: EuropaCache = new EuropaCache();
-	private lock: EuropaLock = new EuropaLock();
 
 	constructor() {
 		$effect(() => {
@@ -51,15 +49,14 @@ class EuropaClient {
 
 	private async rerunQueries(queries: AnyEuropaQuery[]) {
 		const queryPromises = queries.map(async (query) => {
-			try {
-				query.isLoading = true;
-				query.data = await query._def.resolver();
-			} catch (error) {
-				console.error('Query failed:', error);
-				query.error = error as Error;
-			} finally {
-				query.isLoading = false;
-			}
+			query.isLoading = true;
+			const result = await this.cache.getOrSetForKey(
+				query._def.key.toString(),
+				query._def.internalRunFn
+			);
+			query.data = result.data;
+			query.error = result.error;
+			query.isLoading = false;
 		});
 
 		await Promise.all(queryPromises);
@@ -132,10 +129,27 @@ class EuropaClient {
 		queryKey: string[];
 		options?: Partial<EuropaQueryOptions>;
 	}): EuropaQuery<$Output> {
+		const innerRun = async (resolver: () => Promise<$Output>) => {
+			let innerError: Error | undefined;
+			let innerData: $Output | undefined;
+
+			try {
+				innerData = await resolver();
+			} catch (e) {
+				innerError = e as Error;
+			}
+
+			return {
+				data: innerData,
+				error: innerError
+			};
+		};
+
 		const _def: EuropaQueryDef<$Output> = {
 			$types: { output: null as unknown as $Output },
 			key: queryData.queryKey,
 			resolver: queryData.queryFn,
+			internalRunFn: () => innerRun(queryData.queryFn),
 			options: {
 				...defaultEuropaQueryOptions,
 				...queryData.options
@@ -148,36 +162,32 @@ class EuropaClient {
 
 		$effect(() => {
 			const run = async () => {
-				console.log('QUERY IS RUNNING');
-				try {
-					isLoading = true;
-					error = undefined;
-					data = await _def.resolver();
-				} catch (e) {
-					error = e as Error;
-					console.error('Query failed:', e);
-				} finally {
-					isLoading = false;
-				}
-				console.log('QUERY IS DONE');
+				isLoading = true;
+				const result = await this.cache.getOrSetForKey(_def.key.toString(), _def.internalRunFn);
+				data = result.data;
+				error = result.error;
+				isLoading = false;
 			};
 
 			if (_def.options.refetchOnMount) {
-				this.lock.lock(_def.key.toString(), run);
+				run();
 			}
+
+			return () => {
+				if (_def.options.refetchOnNavigate) {
+					this.cache.flushForKey(_def.key.toString());
+				}
+			};
 		});
 
 		const refetch = async () => {
-			try {
-				isLoading = true;
-				error = undefined;
-				data = await _def.resolver();
-			} catch (e) {
-				error = e as Error;
-				console.error('Query failed:', e);
-			} finally {
-				isLoading = false;
-			}
+			isLoading = true;
+			this.cache.flushForKey(_def.key.toString());
+
+			const allQueries = this.findQueriesByKey(_def.key);
+			await this.rerunQueries(allQueries);
+
+			isLoading = false;
 		};
 
 		const newQuery: EuropaQuery<$Output> = {
