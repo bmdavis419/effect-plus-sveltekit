@@ -7,7 +7,7 @@ export const createFirstQuery = () => {
 		queryFn: async () => {
 			console.log('big boy got run');
 			const randomNumber = Math.random();
-			await new Promise((resolve) => setTimeout(resolve, 2000));
+			await new Promise((resolve) => setTimeout(resolve, 200));
 
 			// if (randomNumber > 0.5) {
 			// 	throw new Error('random number is too big');
@@ -16,7 +16,7 @@ export const createFirstQuery = () => {
 			return randomNumber;
 		},
 		queryKey: [420, 'sus'] as const,
-		options: {
+		config: {
 			refetchOnNavigate: false
 		}
 	});

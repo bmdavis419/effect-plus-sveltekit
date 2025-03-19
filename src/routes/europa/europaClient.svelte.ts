@@ -1,11 +1,12 @@
 import { getContext, setContext } from 'svelte';
 import {
-	defaultEuropaQueryOptions,
+	defaultEuropaQueryConfig,
 	type AnyEuropaQuery,
 	type EuropaQuery,
 	type EuropaQueryDef,
 	type EuropaQueryKey,
-	type EuropaQueryOptions
+	type EuropaQueryOptions,
+	type EuropaQueryConfig
 } from './europaQuery';
 import {
 	defaultEuropaMutationOptions,
@@ -34,7 +35,7 @@ class EuropaClient {
 
 		if (isVisible) {
 			const queriesToRerun = this.queries.filter((query) => {
-				return query._def.options.refetchOnWindowFocus;
+				return query._def.config.refetchOnWindowFocus;
 			});
 
 			this.rerunQueries(queriesToRerun);
@@ -125,11 +126,9 @@ class EuropaClient {
 		return newMutation;
 	}
 
-	createQuery<$Output, $Key extends ReadonlyArray<any>>(queryData: {
-		queryFn: () => Promise<$Output>;
-		queryKey: $Key;
-		options?: Partial<EuropaQueryOptions>;
-	}): EuropaQuery<$Output, $Key> {
+	createQuery<$Output, $Key extends ReadonlyArray<any>>(
+		queryData: EuropaQueryOptions<$Output, $Key>
+	): EuropaQuery<$Output, $Key> {
 		const innerRun = async (resolver: () => Promise<$Output>) => {
 			let innerError: Error | undefined;
 			let innerData: $Output | undefined;
@@ -154,9 +153,9 @@ class EuropaClient {
 			key: queryData.queryKey,
 			resolver: queryData.queryFn,
 			internalRunFn: () => innerRun(queryData.queryFn),
-			options: {
-				...defaultEuropaQueryOptions,
-				...queryData.options
+			config: {
+				...defaultEuropaQueryConfig,
+				...queryData.config
 			}
 		};
 
@@ -173,12 +172,12 @@ class EuropaClient {
 				isLoading = false;
 			};
 
-			if (_def.options.refetchOnMount) {
+			if (_def.config.refetchOnMount) {
 				run();
 			}
 
 			return () => {
-				if (_def.options.refetchOnNavigate) {
+				if (_def.config.refetchOnNavigate) {
 					this.cache.flushForKey(_def.key.toString());
 				}
 			};
@@ -233,3 +232,7 @@ export const createEuropaClient = (key: string = DEFAULT_KEY) => {
 export const getEuropaClient = (key: string = DEFAULT_KEY) => {
 	return getContext<EuropaClient>(key);
 };
+
+// some things todo:
+// - make a europaQueryOptions object so that you can reuse that to make multiple queries with the same options
+// - add states to the query, the entire thing should probably just be a state machine

@@ -1,10 +1,10 @@
-export type EuropaQueryOptions = {
+export type EuropaQueryConfig = {
 	refetchOnWindowFocus: boolean;
 	refetchOnMount: boolean;
 	refetchOnNavigate: boolean;
 };
 
-export const defaultEuropaQueryOptions: EuropaQueryOptions = {
+export const defaultEuropaQueryConfig: EuropaQueryConfig = {
 	refetchOnWindowFocus: true,
 	refetchOnMount: true,
 	refetchOnNavigate: true
@@ -28,7 +28,7 @@ export type EuropaQueryDef<TOutput, TKey extends ReadonlyArray<any>> = {
 	};
 	key: TKey;
 	resolver: () => Promise<TOutput>;
-	options: EuropaQueryOptions;
+	config: EuropaQueryConfig;
 	internalRunFn: InternalEuropaQueryRunFn<TOutput>;
 };
 
@@ -44,3 +44,15 @@ export type EuropaQuery<TOutput, TKey extends ReadonlyArray<string>> = {
 } & EuropaQueryMethods<TOutput>;
 
 export type AnyEuropaQuery = EuropaQuery<any, any>;
+
+export type EuropaQueryOptions<$Output, $Key extends ReadonlyArray<any>> = {
+	queryFn: () => Promise<$Output>;
+	queryKey: $Key;
+	config?: Partial<EuropaQueryConfig>;
+};
+
+export const europaQueryOptions = <$Output, $Key extends ReadonlyArray<any>>(
+	options: EuropaQueryOptions<$Output, $Key>
+) => {
+	return options;
+};
