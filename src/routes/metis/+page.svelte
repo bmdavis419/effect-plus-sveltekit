@@ -5,23 +5,24 @@
 	const testQueryOptions = metisQueryOptions({
 		queryFn: ([name]) =>
 			Effect.gen(function* () {
-				console.log(`hello ${name}`);
+				const response = yield* Effect.promise(() => fetch(`/metis/demo`));
 
-				const randomNumber = Math.random();
-
-				yield* Effect.sleep(1000);
-
-				if (randomNumber < 0.5) {
-					return `hello mr. ${name}, your number is ${randomNumber}`;
-				} else {
-					yield* Effect.fail(new Error(`sorry ${name}, your number is too big :(`));
+				if (!response.ok) {
+					yield* Effect.fail(new Error(`something went wrong fetching: ${response.text}`));
 					return '';
 				}
+
+				const { randomNumber } = yield* Effect.promise(
+					() => response.json() as Promise<{ randomNumber: number }>
+				);
+
+				return `hello mr. ${name}, your number is ${randomNumber}`;
 			}),
 		queryKey: ['test'] as const
 	});
 
 	const testQuery = createMetisQuery(testQueryOptions);
+	$inspect(testQuery.error);
 </script>
 
 <div>
@@ -38,7 +39,7 @@
 {/if}
 
 {#if testQuery.error}
-	<div>error: {testQuery.error.message}</div>
+	<div>error: {String(testQuery.error)}</div>
 {/if}
 
 {#if testQuery.data}
