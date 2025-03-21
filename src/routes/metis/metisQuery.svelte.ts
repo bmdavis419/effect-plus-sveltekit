@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { MetisQueryCache } from './metisQueryCache';
+import { MetisQueryCache } from './metisQueryCache.svelte';
 
 export type MetisQueryKey = ReadonlyArray<unknown>;
 
@@ -84,6 +84,8 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 	isLoading = $state<boolean>(false);
 	error = $state<$Error | undefined>(undefined);
 
+	private cacheKey: string;
+
 	constructor(options: MetisQueryOptions<$Key, $Output, $Error>) {
 		this._def = {
 			resolver: options.queryFn,
@@ -115,9 +117,26 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 			cache: options.cache ?? new MetisQueryCache()
 		};
 
+		this.cacheKey = this._def.key.toString();
+
 		$effect(() => {
 			if (this._def.config.refetchOnMount) {
 				this.internalRefetch({ hitCache: true });
+			}
+			return () => {
+				if (this._def.config.refetchOnNavigate) {
+					this._def.cache.flushForKey(this.cacheKey);
+				}
+			};
+		});
+
+		$effect(() => {
+			const cachedData = this._def.cache.getReactiveDataForKey(this.cacheKey);
+
+			// TODO: add isLoading to this :/
+			if (cachedData) {
+				this.data = cachedData.data;
+				this.error = cachedData.error;
 			}
 		});
 	}
@@ -137,8 +156,9 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 
 		if (hitCache) {
 			const { data, error } = await this._def.cache.getOrSetForKey({
-				key: this._def.key.toString(),
-				fn: runFn
+				key: this.cacheKey,
+				fn: runFn,
+				refetchOnWindowFocus: this._def.config.refetchOnWindowFocus
 			});
 
 			this.data = data;
@@ -146,6 +166,11 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 			this.isLoading = false;
 		} else {
 			const { data, error } = await runFn();
+
+			this._def.cache.setReactiveDataForKey(this.cacheKey, {
+				data,
+				error
+			});
 
 			this.data = data;
 			this.error = error;

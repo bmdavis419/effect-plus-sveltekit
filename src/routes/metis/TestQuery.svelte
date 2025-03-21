@@ -10,6 +10,7 @@
 	const testQueryOptions = metisQueryOptions({
 		queryFn: ([name]) =>
 			Effect.gen(function* () {
+				console.log('query fn was called');
 				const response = yield* Effect.promise(() => fetch(`/metis/demo`));
 
 				if (!response.ok) {
@@ -25,9 +26,11 @@
 
 				return `hello ${name}, your num is ${randomToTwoDigits}`;
 			}),
-		queryKey: ['test'] as const,
+		queryKey: ['test', 420] as const,
 		config: {
-			refetchOnMount: true
+			refetchOnMount: true,
+			refetchOnNavigate: true,
+			refetchOnWindowFocus: true
 		}
 	});
 

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Effect } from 'effect';
-	import { metisQueryOptions } from './metisQuery.svelte';
 	import { metisMutationOptions } from './metisMutation.svelte';
 	import { getMetisClient } from './metisClient.svelte';
 	import TestQuery from './TestQuery.svelte';
@@ -29,6 +28,9 @@
 	<h3 class="text-2xl font-bold">Metis: the second version of the svelte query stuff</h3>
 	<p>work in progress</p>
 </div>
+
+<a href="/metis/sub" class="text-blue-500 underline">go to sub page</a>
+<a href="/metis/sub/empty" class="text-blue-500 underline">go to empty sub page</a>
 
 <div>
 	<button onclick={() => testMutation.mutate({ name: 'John' })}>mutate</button>
