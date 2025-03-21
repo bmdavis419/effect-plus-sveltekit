@@ -17,6 +17,8 @@ export class MetisQueryCache {
 		Awaited<ReturnType<AnyMetisQueryInternalRunResolver>>
 	>();
 
+	private reactiveLoadingCache = new SvelteMap<string, boolean>();
+
 	private async handleWindowFocus() {
 		const isVisible = !document.hidden;
 
@@ -39,6 +41,8 @@ export class MetisQueryCache {
 				if (cacheItem && cacheItem.refetchOnWindowFocus) {
 					this.flushForKey(key);
 
+					this.reactiveLoadingCache.set(key, true);
+
 					const newPromise = cacheItem.run();
 
 					this.cache.set(key, {
@@ -54,6 +58,7 @@ export class MetisQueryCache {
 					});
 
 					this.reactiveDataCache.set(key, res);
+					this.reactiveLoadingCache.set(key, false);
 				}
 			});
 
@@ -80,8 +85,16 @@ export class MetisQueryCache {
 		return this.reactiveDataCache.get(key);
 	}
 
+	getReactiveLoadingForKey(key: string) {
+		return this.reactiveLoadingCache.get(key);
+	}
+
 	setReactiveDataForKey(key: string, data: Awaited<ReturnType<AnyMetisQueryInternalRunResolver>>) {
 		this.reactiveDataCache.set(key, data);
+	}
+
+	setReactiveLoadingForKey(key: string, loading: boolean) {
+		this.reactiveLoadingCache.set(key, loading);
 	}
 
 	async getOrSetForKey(data: {
@@ -98,7 +111,11 @@ export class MetisQueryCache {
 				return currentPromise.result;
 			}
 
+			this.reactiveLoadingCache.set(key, true);
+
 			const res = await currentPromise.runPromise;
+
+			this.reactiveLoadingCache.set(key, false);
 
 			return res;
 		}
@@ -112,7 +129,11 @@ export class MetisQueryCache {
 			refetchOnWindowFocus
 		});
 
+		this.reactiveLoadingCache.set(key, true);
+
 		const result = await nPromise;
+
+		this.reactiveLoadingCache.set(key, false);
 
 		this.cache.set(key, {
 			run: fn,

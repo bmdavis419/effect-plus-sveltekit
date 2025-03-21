@@ -131,6 +131,16 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 		});
 
 		$effect(() => {
+			const cachedLoading = this._def.cache.getReactiveLoadingForKey(this.cacheKey);
+
+			if (cachedLoading === true) {
+				this.isLoading = true;
+			} else if (cachedLoading === false) {
+				this.isLoading = false;
+			}
+		});
+
+		$effect(() => {
 			const cachedData = this._def.cache.getReactiveDataForKey(this.cacheKey);
 
 			// TODO: add isLoading to this :/
@@ -165,12 +175,15 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 			this.error = error;
 			this.isLoading = false;
 		} else {
+			this._def.cache.setReactiveLoadingForKey(this.cacheKey, true);
 			const { data, error } = await runFn();
 
 			this._def.cache.setReactiveDataForKey(this.cacheKey, {
 				data,
 				error
 			});
+
+			this._def.cache.setReactiveLoadingForKey(this.cacheKey, false);
 
 			this.data = data;
 			this.error = error;
