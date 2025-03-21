@@ -46,7 +46,7 @@ export const metisMutationOptions = <$Input, $Output, $Error>(
 	return options;
 };
 
-export const createMetisMutation = <$Input, $Output, $Error>(
+export const internalCreateMetisMutation = <$Input, $Output, $Error>(
 	options: MetisMutationOptions<$Input, $Output, $Error>
 ) => {
 	return new MetisMutationClass(options) as MetisMutation<$Input, $Output, $Error>;

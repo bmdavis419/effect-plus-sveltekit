@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
+import { MetisQueryCache } from './metisQueryCache';
 
-type MetisQueryKey = ReadonlyArray<unknown>;
+export type MetisQueryKey = ReadonlyArray<unknown>;
 
 export type DecoratedMetisQueryKey<TKey extends MetisQueryKey> = {
 	[K in keyof TKey]: TKey[K] extends TKey[number] ? TKey[K] : never;
@@ -10,6 +11,13 @@ export type MetisQueryResolver<TKey extends MetisQueryKey, TOutput, TError> = (
 	input: DecoratedMetisQueryKey<TKey>
 ) => Effect.Effect<TOutput, TError>;
 
+export type MetisQueryInternalRunResolver<TOutput, TError> = () => Promise<{
+	data: TOutput | undefined;
+	error: TError | undefined;
+}>;
+
+export type AnyMetisQueryInternalRunResolver = MetisQueryInternalRunResolver<any, any>;
+
 export type MetisQueryDef<TKey extends MetisQueryKey, TOutput, TError> = {
 	resolver: MetisQueryResolver<TKey, TOutput, TError>;
 	$types: {
@@ -18,10 +26,9 @@ export type MetisQueryDef<TKey extends MetisQueryKey, TOutput, TError> = {
 		error: TError;
 	};
 	key: DecoratedMetisQueryKey<TKey>;
-	internalRunResolver: () => Promise<{
-		data: TOutput | undefined;
-		error: TError | undefined;
-	}>;
+	internalRunResolver: MetisQueryInternalRunResolver<TOutput, TError>;
+	config: MetisQueryConfig;
+	cache: MetisQueryCache;
 };
 
 export type MetisQueryMethods<TOutput, TError> = {
@@ -37,9 +44,23 @@ export type MetisQuery<TKey extends MetisQueryKey, TOutput, TError> = {
 
 export type AnyMetisQuery = MetisQuery<any, any, any>;
 
+export type MetisQueryConfig = {
+	refetchOnWindowFocus: boolean;
+	refetchOnMount: boolean;
+	refetchOnNavigate: boolean;
+};
+
+export const defaultMetisQueryConfig: MetisQueryConfig = {
+	refetchOnWindowFocus: true,
+	refetchOnMount: true,
+	refetchOnNavigate: true
+};
+
 export type MetisQueryOptions<$Key extends MetisQueryKey, $Output, $Error> = {
 	queryFn: MetisQueryResolver<$Key, $Output, $Error>;
 	queryKey: $Key;
+	config?: Partial<MetisQueryConfig>;
+	cache?: MetisQueryCache;
 };
 
 export const metisQueryOptions = <$Key extends MetisQueryKey, $Output, $Error>(
@@ -48,7 +69,7 @@ export const metisQueryOptions = <$Key extends MetisQueryKey, $Output, $Error>(
 	return options;
 };
 
-export const createMetisQuery = <$Key extends MetisQueryKey, $Output, $Error>(
+export const internalCreateMetisQuery = <$Key extends MetisQueryKey, $Output, $Error>(
 	options: MetisQueryOptions<$Key, $Output, $Error>
 ) => {
 	return new MetisQueryClass(options) as MetisQuery<$Key, $Output, $Error>;
@@ -86,21 +107,53 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 						error: error as $Error
 					};
 				}
-			}
+			},
+			config: {
+				...defaultMetisQueryConfig,
+				...options.config
+			},
+			cache: options.cache ?? new MetisQueryCache()
 		};
 
 		$effect(() => {
-			this.refetch();
+			if (this._def.config.refetchOnMount) {
+				this.internalRefetch({ hitCache: true });
+			}
 		});
 	}
 
-	async refetch() {
+	private async internalRefetch(
+		data: {
+			hitCache: boolean;
+		} = {
+			hitCache: true
+		}
+	) {
+		const { hitCache } = data;
+
 		this.isLoading = true;
 
-		const { data, error } = await this._def.internalRunResolver();
+		const runFn = this._def.internalRunResolver;
 
-		this.data = data;
-		this.error = error;
-		this.isLoading = false;
+		if (hitCache) {
+			const { data, error } = await this._def.cache.getOrSetForKey({
+				key: this._def.key.toString(),
+				fn: runFn
+			});
+
+			this.data = data;
+			this.error = error;
+			this.isLoading = false;
+		} else {
+			const { data, error } = await runFn();
+
+			this.data = data;
+			this.error = error;
+			this.isLoading = false;
+		}
+	}
+
+	async refetch() {
+		await this.internalRefetch({ hitCache: false });
 	}
 }

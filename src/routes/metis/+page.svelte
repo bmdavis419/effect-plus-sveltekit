@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { Effect } from 'effect';
-	import { createMetisQuery, metisQueryOptions } from './metisQuery.svelte';
-	import { createMetisMutation, metisMutationOptions } from './metisMutation.svelte';
+	import { metisQueryOptions } from './metisQuery.svelte';
+	import { metisMutationOptions } from './metisMutation.svelte';
+	import { getMetisClient } from './metisClient.svelte';
+
+	const client = getMetisClient();
 
 	const testMutationOptions = metisMutationOptions({
 		mutationFn: (data: { name: string }) =>
@@ -18,7 +21,7 @@
 		}
 	});
 
-	const testMutation = createMetisMutation(testMutationOptions);
+	const testMutation = client.createMutation(testMutationOptions);
 
 	const testQueryOptions = metisQueryOptions({
 		queryFn: ([name]) =>
@@ -36,10 +39,13 @@
 
 				return `hello mr. ${name}, your number is ${randomNumber}`;
 			}),
-		queryKey: ['test'] as const
+		queryKey: ['test'] as const,
+		config: {
+			refetchOnMount: true
+		}
 	});
 
-	const testQuery = createMetisQuery(testQueryOptions);
+	const testQuery = client.createQuery(testQueryOptions);
 </script>
 
 <div>
