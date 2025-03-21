@@ -15,6 +15,7 @@ export type MetisQueryDef<TKey extends MetisQueryKey, TOutput, TError> = {
 	$types: {
 		output: TOutput;
 		key: DecoratedMetisQueryKey<TKey>;
+		error: TError;
 	};
 	key: DecoratedMetisQueryKey<TKey>;
 	internalRunResolver: () => Promise<{
@@ -67,7 +68,8 @@ export class MetisQueryClass<$Key extends MetisQueryKey, $Output, $Error>
 			resolver: options.queryFn,
 			$types: {
 				output: null as unknown as $Output,
-				key: null as unknown as DecoratedMetisQueryKey<$Key>
+				key: null as unknown as DecoratedMetisQueryKey<$Key>,
+				error: null as unknown as $Error
 			},
 			key: options.queryKey as DecoratedMetisQueryKey<$Key>,
 			internalRunResolver: async () => {
