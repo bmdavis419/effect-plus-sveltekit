@@ -3,6 +3,7 @@
 	import { metisQueryOptions } from './metisQuery.svelte';
 	import { metisMutationOptions } from './metisMutation.svelte';
 	import { getMetisClient } from './metisClient.svelte';
+	import TestQuery from './TestQuery.svelte';
 
 	const client = getMetisClient();
 
@@ -22,30 +23,6 @@
 	});
 
 	const testMutation = client.createMutation(testMutationOptions);
-
-	const testQueryOptions = metisQueryOptions({
-		queryFn: ([name]) =>
-			Effect.gen(function* () {
-				const response = yield* Effect.promise(() => fetch(`/metis/demo`));
-
-				if (!response.ok) {
-					yield* Effect.fail(new Error(`your number is too big :(`));
-					return '';
-				}
-
-				const { randomNumber } = yield* Effect.promise(
-					() => response.json() as Promise<{ randomNumber: number }>
-				);
-
-				return `hello mr. ${name}, your number is ${randomNumber}`;
-			}),
-		queryKey: ['test'] as const,
-		config: {
-			refetchOnMount: true
-		}
-	});
-
-	const testQuery = client.createQuery(testQueryOptions);
 </script>
 
 <div>
@@ -65,18 +42,8 @@
 	<div>error: {String(testMutation.error)}</div>
 {/if}
 
-<div>
-	<button onclick={() => testQuery.refetch()}>refetch</button>
+<div class="flex items-center justify-center gap-4">
+	<TestQuery idx={1} />
+	<TestQuery idx={2} />
+	<TestQuery idx={3} />
 </div>
-
-{#if testQuery.isLoading}
-	<div>loading...</div>
-{/if}
-
-{#if testQuery.error}
-	<div>error: {String(testQuery.error.message)}</div>
-{/if}
-
-{#if testQuery.data}
-	<div>{testQuery.data}</div>
-{/if}
