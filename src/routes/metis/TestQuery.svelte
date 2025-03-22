@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Effect } from 'effect';
+	import { Effect, Schema } from 'effect';
 	import { getMetisClient } from './metisClient.svelte';
 	import { metisQueryOptions } from './metisQuery.svelte';
 
@@ -11,16 +11,31 @@
 		queryFn: ([name]) =>
 			Effect.gen(function* () {
 				console.log('query fn was called');
-				const response = yield* Effect.promise(() => fetch(`/metis/demo`));
+				const responseText = yield* Effect.tryPromise({
+					try: async () => {
+						const res = await fetch(`/metis/demo`);
 
-				if (!response.ok) {
-					yield* Effect.fail(new Error(`your number is too big :(`));
-					return '';
-				}
+						if (!res.ok) {
+							throw new Error('your number is too big :(');
+						}
 
-				const { randomNumber } = yield* Effect.promise(
-					() => response.json() as Promise<{ randomNumber: number }>
+						const responseText = await res.text();
+
+						return responseText;
+					},
+					catch: (error) => {
+						console.error(error);
+						return error as Error;
+					}
+				});
+
+				const jsonSchema = Schema.parseJson(
+					Schema.Struct({
+						randomNumber: Schema.Number
+					})
 				);
+
+				const { randomNumber } = yield* Schema.decodeUnknown(jsonSchema)(responseText);
 
 				const randomToTwoDigits = Math.floor(randomNumber * 100);
 
